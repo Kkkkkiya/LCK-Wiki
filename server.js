@@ -25,13 +25,13 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Limbus Company Karma Ark 首页</title>
+  <title>Wiki 首页</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
   <div class="container">
-    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
+    <a class="navbar-brand" href="/">Wiki</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -40,6 +40,7 @@ function ensureViews() {
         <% if(user){ %>
           <li class="nav-item"><span class="navbar-text me-2">用户: <%= user.username %></span></li>
           <li class="nav-item"><a class="nav-link" href="/logout">退出</a></li>
+          <li class="nav-item"><a class="nav-link" href="/users">用户列表</a></li>
         <% } else { %>
           <li class="nav-item"><a class="nav-link" href="/login">登录</a></li>
           <li class="nav-item"><a class="nav-link" href="/register">注册</a></li>
@@ -49,7 +50,7 @@ function ensureViews() {
   </div>
 </nav>
 <div class="container mt-4">
-  <h1>所有页面</h1>
+  <h1>所有 Wiki 页面</h1>
   <% if(user){ %>
     <a href="/pages/new" class="btn btn-primary mb-3">+ 新建页面</a>
   <% } %>
@@ -74,7 +75,7 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - Limbus Company Karma Ark</title>
+  <title>登录 - Wiki</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -201,6 +202,48 @@ function ensureViews() {
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+</html>`,
+
+    'userlist.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户列表 - Limbus Company Karma Ark</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
+    <div>
+      <span class="navbar-text me-2">用户: <%= user.username %></span>
+      <a href="/" class="btn btn-sm btn-outline-light">返回首页</a>
+    </div>
+  </div>
+</nav>
+<div class="container mt-4">
+  <h1>已注册用户</h1>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>用户名</th>
+        <th>邮箱</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td><%= u.username %></td>
+          <td><%= u.email %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <a href="/" class="btn btn-secondary">返回首页</a>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>`
   };
 
@@ -255,9 +298,22 @@ async function getUser(username) {
 async function createUser(username, password, email) {
   await db.execute('INSERT INTO users (username, password, email) VALUES (?, ?, ?)', [username, password, email]);
 }
+async function getAllUsers() {
+  const result = await db.execute('SELECT username, email FROM users ORDER BY username');
+  return result.rows;
+}
 
 const requireLogin = (req, res, next) => {
   if (!req.session.user) return res.redirect('/login');
+  next();
+};
+
+// 管理员检查（仅允许 admin）
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.username !== 'admin') {
+    return res.status(403).send('只有管理员可以查看用户列表');
+  }
   next();
 };
 
@@ -317,6 +373,17 @@ app.post('/pages/:id/edit', requireLogin, async (req, res) => {
 app.get('/pages/:id/delete', requireLogin, async (req, res) => {
   await deletePage(req.params.id);
   res.redirect('/');
+});
+
+// ---------- 用户列表路由（仅 admin） ----------
+app.get('/users', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.render('userlist', { user: req.session.user, users });
+  } catch (err) {
+    console.error('用户列表错误:', err);
+    res.status(500).send('加载用户列表失败');
+  }
 });
 
 (async () => {
