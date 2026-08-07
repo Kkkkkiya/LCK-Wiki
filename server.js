@@ -7,40 +7,35 @@ const { createClient } = require('@libsql/client');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- 视图引擎设置（这就是你缺失的部分） ----------
 app.set('view engine', 'ejs');
 app.set('views', require('path').join(__dirname, 'views'));
 
-// ---------- 中间件 ----------
 app.use(express.urlencoded({ extended: true }));
 app.use(session({ secret: 'wiki_secret', resave: false, saveUninitialized: true }));
 
-// ---------- Turso 数据库配置 ----------
 const db = createClient({
     url: process.env.TURSO_DATABASE_URL || 'libsql://lck-wiki-kkkkiya.aws-ap-northeast-1.turso.io',
     authToken: process.env.TURSO_AUTH_TOKEN || 'eyJhbGciOiJfZERQTSlsInR5cCI6IkpXVCI9.eyJhIjoiInciLCJpYXQiOjE3ODYwODM3NDIsImlkjoiMDE5ZmRzTlNtNjYwMS03YThhLWl3ZWlNtZzMZNYzNzlNzhkliwia2IkIjoiMklySXV6c3hGb0NfVVlJVjNWbE02VndqalI3MnZrtVpjM1RadlZCZExpNCIsInJpZC6InJmYTFhZWMOlWewMmQtNGjMS04M2RILTAXyzk4OWM5NWUzYi9J0fACX7Enlgs2Obc70QYwLuxb2ap-T13ViHorUzB0knk2I3Bkjrz5rllkUYPELXUz7udvlmtT8W-I-0ZyxO_DA'
 });
 
-// ---------- 初始化数据库 ----------
 async function initDB() {
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT,
-            email TEXT
-        )
-    `);
-    await db.execute(`
-        CREATE TABLE IF NOT EXISTS pages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            content TEXT,
-            author TEXT,
-            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      username TEXT PRIMARY KEY,
+      password TEXT,
+      email TEXT
+    )
+  `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      content TEXT,
+      author TEXT,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 }
-
 // ---------- 数据库操作函数（必须在路由之前定义） ----------
 async function getPages() {
     const result = await db.execute('SELECT * FROM pages ORDER BY updatedAt DESC');
@@ -145,6 +140,6 @@ app.get('/pages/:id/delete', requireLogin, async (req, res) => {
 (async () => {
     await initDB();
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`✅ Wiki 运行在 http://localhost:${PORT}`);
+        console.log(`Wiki 运行在 http://localhost:${PORT}`);
     });
 })();
