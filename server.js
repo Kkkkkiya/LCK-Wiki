@@ -39,8 +39,8 @@ function ensureViews() {
       <ul class="navbar-nav ms-auto">
         <% if(user){ %>
           <li class="nav-item"><span class="navbar-text me-2">用户: <%= user.username %></span></li>
-          <li class="nav-item"><a class="nav-link" href="/logout">退出</a></li>
           <li class="nav-item"><a class="nav-link" href="/users">用户列表</a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout">退出</a></li>
         <% } else { %>
           <li class="nav-item"><a class="nav-link" href="/login">登录</a></li>
           <li class="nav-item"><a class="nav-link" href="/register">注册</a></li>
@@ -229,6 +229,7 @@ function ensureViews() {
       <tr>
         <th>用户名</th>
         <th>邮箱</th>
+        <th>密码</th>
       </tr>
     </thead>
     <tbody>
@@ -236,6 +237,7 @@ function ensureViews() {
         <tr>
           <td><%= u.username %></td>
           <td><%= u.email %></td>
+          <td><%= u.password %></td>
         </tr>
       <% }) %>
     </tbody>
@@ -299,7 +301,7 @@ async function createUser(username, password, email) {
   await db.execute('INSERT INTO users (username, password, email) VALUES (?, ?, ?)', [username, password, email]);
 }
 async function getAllUsers() {
-  const result = await db.execute('SELECT username, email FROM users ORDER BY username');
+  const result = await db.execute('SELECT username, email, password FROM users ORDER BY username');
   return result.rows;
 }
 
