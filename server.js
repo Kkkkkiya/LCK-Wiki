@@ -9,11 +9,10 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- 视图引擎设置 ----------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ---------- 自动创建视图文件（确保 Railway 部署后也可用） ----------
+// ---------- 强制创建/覆盖所有视图文件 ----------
 function ensureViews() {
   const viewsDir = path.join(__dirname, 'views');
   if (!fs.existsSync(viewsDir)) {
@@ -26,13 +25,13 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wiki 首页</title>
+  <title>Limbus Company Karma Ark 首页</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
   <div class="container">
-    <a class="navbar-brand" href="/">Wiki</a>
+    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -50,7 +49,7 @@ function ensureViews() {
   </div>
 </nav>
 <div class="container mt-4">
-  <h1>所有 Wiki 页面</h1>
+  <h1>所有页面</h1>
   <% if(user){ %>
     <a href="/pages/new" class="btn btn-primary mb-3">+ 新建页面</a>
   <% } %>
@@ -75,7 +74,7 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录</title>
+  <title>登录 - Limbus Company Karma Ark</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -107,7 +106,7 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>注册</title>
+  <title>注册 - Limbus Company Karma Ark</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -143,13 +142,13 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= page ? '编辑' : '新建' %>页面</title>
+  <title><%= page ? '编辑' : '新建' %>页面 - Limbus Company Karma Ark</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark fixed-top">
   <div class="container">
-    <a class="navbar-brand" href="/">Wiki</a>
+    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
   </div>
 </nav>
 <div class="container mt-4">
@@ -176,13 +175,13 @@ function ensureViews() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= page.title %></title>
+  <title><%= page.title %> - Limbus Company Karma Ark</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-dark bg-dark fixed-top">
   <div class="container">
-    <a class="navbar-brand" href="/">Wiki</a>
+    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
     <div>
       <% if(user){ %>
         <a href="/pages/<%= page.id %>/edit" class="btn btn-sm btn-warning">编辑</a>
@@ -205,12 +204,11 @@ function ensureViews() {
 </html>`
   };
 
+  // 强制覆盖写入
   for (const [filename, content] of Object.entries(files)) {
     const filePath = path.join(viewsDir, filename);
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, content, 'utf8');
-      console.log('Created ' + filePath);
-    }
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log('Written ' + filePath);
   }
 }
 
@@ -222,51 +220,42 @@ app.use(session({
   saveUninitialized: true
 }));
 
-// ---------- Turso 数据库配置 ----------
+// ---------- Turso 数据库 ----------
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL || 'libsql://lck-wiki-kkkkiya.aws-ap-northeast-1.turso.io',
   authToken: process.env.TURSO_AUTH_TOKEN || 'eyJhbGciOiJfZERQTslsInR5cI6IkpXVC19.eyJhIjoiInciLCJpYXQiOjE3ODYwODM3NDIsImlkjioiMDE5ZmRzTlNtNjYwM5O3YThhLW13ZWlNtZzMZNYzNzI1Nzhkliwia2IkIjoiMklySXV6c3hGb0NFVV1JVjNWbE02VndqaI13MnZrtVpjM1Rad1ZCzExpNCIsInJpZC6InJmYTFhZWMOlWewMmQtNGjMS04M2RILTAxyzk4OWM5NWUzYi9J0fACX7En1gs20bc70QYwLuxb2ap-T13ViHorUzB0knk2I3Bkjrz5r1lkUYPELXUz7udv1mtT8W-I-0ZyxO_DA'
 });
 
-// ---------- 初始化数据库 ----------
 async function initDB() {
   await db.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, email TEXT)');
   await db.execute('CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, author TEXT, updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP)');
 }
 
-// ---------- 数据库操作 ----------
 async function getPages() {
   const result = await db.execute('SELECT * FROM pages ORDER BY updatedAt DESC');
   return result.rows;
 }
-
 async function getPage(id) {
   const result = await db.execute('SELECT * FROM pages WHERE id = ?', [id]);
   return result.rows[0];
 }
-
 async function createPage(title, content, author) {
   await db.execute('INSERT INTO pages (title, content, author) VALUES (?, ?, ?)', [title, content, author]);
 }
-
 async function updatePage(id, title, content) {
   await db.execute('UPDATE pages SET title = ?, content = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [title, content, id]);
 }
-
 async function deletePage(id) {
   await db.execute('DELETE FROM pages WHERE id = ?', [id]);
 }
-
 async function getUser(username) {
   const result = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
   return result.rows[0];
 }
-
 async function createUser(username, password, email) {
   await db.execute('INSERT INTO users (username, password, email) VALUES (?, ?, ?)', [username, password, email]);
 }
 
-// ---------- 路由 ----------
 const requireLogin = (req, res, next) => {
   if (!req.session.user) return res.redirect('/login');
   next();
@@ -277,11 +266,10 @@ app.get('/', async (req, res) => {
     const pages = await getPages();
     res.render('index', { user: req.session.user, pages });
   } catch (err) {
-    console.error('首页加载错误:', err);
+    console.error('首页错误:', err);
     res.status(500).send('服务器错误: ' + err.message);
   }
 });
-
 app.get('/login', (req, res) => res.render('login', { user: null }));
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -293,7 +281,6 @@ app.post('/login', async (req, res) => {
     res.send('登录失败 <a href="/login">重试</a>');
   }
 });
-
 app.get('/register', (req, res) => res.render('register', { user: null }));
 app.post('/register', async (req, res) => {
   const { username, password, email } = req.body;
@@ -302,27 +289,21 @@ app.post('/register', async (req, res) => {
   req.session.user = { username };
   res.redirect('/');
 });
-
 app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
-
-app.get('/pages/new', requireLogin, (req, res) => {
-  res.render('edit', { page: null, user: req.session.user });
-});
+app.get('/pages/new', requireLogin, (req, res) => res.render('edit', { page: null, user: req.session.user }));
 app.post('/pages', requireLogin, async (req, res) => {
   const { title, content } = req.body;
   await createPage(title, content, req.session.user.username);
   res.redirect('/');
 });
-
 app.get('/pages/:id', async (req, res) => {
   const page = await getPage(req.params.id);
   if (!page) return res.status(404).send('页面不存在');
   page.contentHtml = md.render(page.content);
   res.render('view', { page, user: req.session.user });
 });
-
 app.get('/pages/:id/edit', requireLogin, async (req, res) => {
   const page = await getPage(req.params.id);
   if (!page) return res.status(404).send('页面不存在');
@@ -333,17 +314,15 @@ app.post('/pages/:id/edit', requireLogin, async (req, res) => {
   await updatePage(req.params.id, title, content);
   res.redirect('/pages/' + req.params.id);
 });
-
 app.get('/pages/:id/delete', requireLogin, async (req, res) => {
   await deletePage(req.params.id);
   res.redirect('/');
 });
 
-// ---------- 启动 ----------
 (async () => {
-  ensureViews();    // 确保视图文件存在
+  ensureViews();
   await initDB();
   app.listen(PORT, '0.0.0.0', () => {
-    console.log('Wiki running on http://localhost:' + PORT);
+    console.log('Server running on http://localhost:' + PORT);
   });
 })();
