@@ -4,6 +4,7 @@ const MarkdownIt = require('markdown-it');
 const md = new MarkdownIt();
 const { createClient } = require('@libsql/client');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,207 @@ const PORT = process.env.PORT || 3000;
 // ---------- 视图引擎设置 ----------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// ---------- 自动创建视图文件（确保 Railway 部署后也可用） ----------
+function ensureViews() {
+  const viewsDir = path.join(__dirname, 'views');
+  if (!fs.existsSync(viewsDir)) {
+    fs.mkdirSync(viewsDir, { recursive: true });
+  }
+
+  const files = {
+    'index.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wiki 首页</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="/">Wiki</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <% if(user){ %>
+          <li class="nav-item"><span class="navbar-text me-2">用户: <%= user.username %></span></li>
+          <li class="nav-item"><a class="nav-link" href="/logout">退出</a></li>
+        <% } else { %>
+          <li class="nav-item"><a class="nav-link" href="/login">登录</a></li>
+          <li class="nav-item"><a class="nav-link" href="/register">注册</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container mt-4">
+  <h1>所有 Wiki 页面</h1>
+  <% if(user){ %>
+    <a href="/pages/new" class="btn btn-primary mb-3">+ 新建页面</a>
+  <% } %>
+  <ul class="list-group">
+    <% if(Object.keys(pages).length === 0){ %>
+      <li class="list-group-item text-muted">暂无页面，快去创建第一个吧！</li>
+    <% } %>
+    <% for(let key in pages){ %>
+      <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center">
+        <a href="/pages/<%= pages[key].id %>"><%= pages[key].title %></a>
+        <small class="text-muted"><%= pages[key].updatedAt.toLocaleString() %></small>
+      </li>
+    <% } %>
+  </ul>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`,
+
+    'login.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container" style="max-width:400px; margin-top:80px;">
+  <div class="card shadow">
+    <div class="card-body">
+      <h3 class="text-center mb-4">登录</h3>
+      <form action="/login" method="POST">
+        <div class="mb-3">
+          <label class="form-label">用户名</label>
+          <input name="username" class="form-control" required autofocus>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">密码</label>
+          <input name="password" type="password" class="form-control" required>
+        </div>
+        <button class="btn btn-primary w-100">登录</button>
+      </form>
+      <p class="mt-3 text-center">没有账号？<a href="/register">去注册</a></p>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`,
+
+    'register.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container" style="max-width:400px; margin-top:80px;">
+  <div class="card shadow">
+    <div class="card-body">
+      <h3 class="text-center mb-4">注册</h3>
+      <form action="/register" method="POST">
+        <div class="mb-3">
+          <label class="form-label">用户名</label>
+          <input name="username" class="form-control" required autofocus>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">密码</label>
+          <input name="password" type="password" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">邮箱</label>
+          <input name="email" type="email" class="form-control" required>
+        </div>
+        <button class="btn btn-success w-100">注册</button>
+      </form>
+      <p class="mt-3 text-center">已有账号？<a href="/login">去登录</a></p>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`,
+
+    'edit.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= page ? '编辑' : '新建' %>页面</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="/">Wiki</a>
+  </div>
+</nav>
+<div class="container mt-4">
+  <h2><%= page ? '编辑：' + page.title : '新建页面' %></h2>
+  <form action="<%= page ? '/pages/'+page.id+'/edit' : '/pages' %>" method="POST">
+    <div class="mb-3">
+      <label class="form-label">标题</label>
+      <input name="title" class="form-control" value="<%= page ? page.title : '' %>" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">内容 (Markdown)</label>
+      <textarea name="content" class="form-control" rows="12" required><%= page ? page.content : '' %></textarea>
+    </div>
+    <button class="btn btn-primary">保存</button>
+    <a href="/" class="btn btn-secondary">取消</a>
+  </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`,
+
+    'view.ejs': `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= page.title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="/">Wiki</a>
+    <div>
+      <% if(user){ %>
+        <a href="/pages/<%= page.id %>/edit" class="btn btn-sm btn-warning">编辑</a>
+        <a href="/pages/<%= page.id %>/delete" class="btn btn-sm btn-danger" onclick="return confirm('确定删除吗？')">删除</a>
+      <% } %>
+    </div>
+  </div>
+</nav>
+<div class="container mt-4">
+  <h1><%= page.title %></h1>
+  <small class="text-muted">作者：<%= page.author %> ｜ 更新于：<%= page.updatedAt.toLocaleString() %></small>
+  <hr />
+  <div class="wiki-content">
+    <%- page.contentHtml %>
+  </div>
+  <a href="/" class="btn btn-outline-secondary mt-3">← 返回首页</a>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>`
+  };
+
+  for (const [filename, content] of Object.entries(files)) {
+    const filePath = path.join(viewsDir, filename);
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log('Created ' + filePath);
+    }
+  }
+}
 
 // ---------- 中间件 ----------
 app.use(express.urlencoded({ extended: true }));
@@ -28,25 +230,11 @@ const db = createClient({
 
 // ---------- 初始化数据库 ----------
 async function initDB() {
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      password TEXT,
-      email TEXT
-    )
-  `);
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS pages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      content TEXT,
-      author TEXT,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  await db.execute('CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, email TEXT)');
+  await db.execute('CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, author TEXT, updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP)');
 }
 
-// ---------- 数据库操作函数 ----------
+// ---------- 数据库操作 ----------
 async function getPages() {
   const result = await db.execute('SELECT * FROM pages ORDER BY updatedAt DESC');
   return result.rows;
@@ -116,9 +304,7 @@ app.post('/register', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/');
-  });
+  req.session.destroy(() => res.redirect('/'));
 });
 
 app.get('/pages/new', requireLogin, (req, res) => {
@@ -145,7 +331,7 @@ app.get('/pages/:id/edit', requireLogin, async (req, res) => {
 app.post('/pages/:id/edit', requireLogin, async (req, res) => {
   const { title, content } = req.body;
   await updatePage(req.params.id, title, content);
-  res.redirect(`/pages/${req.params.id}`);
+  res.redirect('/pages/' + req.params.id);
 });
 
 app.get('/pages/:id/delete', requireLogin, async (req, res) => {
@@ -153,10 +339,11 @@ app.get('/pages/:id/delete', requireLogin, async (req, res) => {
   res.redirect('/');
 });
 
-// ---------- 启动服务器 ----------
+// ---------- 启动 ----------
 (async () => {
+  ensureViews();    // 确保视图文件存在
   await initDB();
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Wiki running on http://localhost:${PORT}`);
+    console.log('Wiki running on http://localhost:' + PORT);
   });
 })();
