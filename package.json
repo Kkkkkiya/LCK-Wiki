@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,6 @@
     "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "marked": "^18.0.9"
+    "markdown-it": "^15.0.0"
   }
 }
