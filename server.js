@@ -38,7 +38,7 @@ function ensureViews() {
 <body>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
   <div class="container">
-    <a class="navbar-brand" href="/">Limbus Company Karma Ark</a>
+    <a class="navbar-brand" href="/">Wiki</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -574,9 +574,10 @@ async function initDB() {
     await db.execute('ALTER TABLE pages ADD COLUMN status TEXT DEFAULT "pending"');
   }
 
-  const bgRow = await db.execute('SELECT value FROM config WHERE key = "background"');
+  // 修复：使用单引号而非双引号
+  const bgRow = await db.execute("SELECT value FROM config WHERE key = 'background'");
   if (bgRow.rows.length === 0) {
-    await db.execute('INSERT INTO config (key, value) VALUES ("background", "#f8f9fa")');
+    await db.execute("INSERT INTO config (key, value) VALUES ('background', '#f8f9fa')");
   } else {
     globalBackground = bgRow.rows[0].value;
   }
@@ -807,7 +808,7 @@ app.post('/pending/:id/reject', requireLogin, requireReviewer, async (req, res) 
   res.redirect('/pending');
 });
 
-// ---------- 用户列表（仅 admin 和 reviewer 可访问） ----------
+// ---------- 用户列表 ----------
 app.get('/users', requireLogin, async (req, res) => {
   const user = req.session.user;
   if (!user.is_admin && !user.is_reviewer) {
@@ -815,11 +816,9 @@ app.get('/users', requireLogin, async (req, res) => {
   }
   let users;
   if (user.is_admin) {
-    // 管理员可以看到所有字段
     users = await getAllUsers();
     res.render('userlist', { user: req.session.user, users, showSensitive: true });
   } else {
-    // 审核员只能看到用户名
     const result = await db.execute('SELECT username FROM users ORDER BY username');
     users = result.rows;
     res.render('userlist', { user: req.session.user, users, showSensitive: false });
