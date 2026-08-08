@@ -574,7 +574,6 @@ async function initDB() {
     await db.execute('ALTER TABLE pages ADD COLUMN status TEXT DEFAULT "pending"');
   }
 
-  // 修复：使用单引号而非双引号
   const bgRow = await db.execute("SELECT value FROM config WHERE key = 'background'");
   if (bgRow.rows.length === 0) {
     await db.execute("INSERT INTO config (key, value) VALUES ('background', '#f8f9fa')");
@@ -583,9 +582,9 @@ async function initDB() {
   }
 }
 
-// ---------- 数据库操作函数 ----------
+// ---------- 数据库操作函数（全部使用单引号） ----------
 async function getPages() {
-  const result = await db.execute('SELECT * FROM pages WHERE status = "approved" ORDER BY updatedAt DESC');
+  const result = await db.execute("SELECT * FROM pages WHERE status = 'approved' ORDER BY updatedAt DESC");
   return result.rows;
 }
 async function getPage(id) {
@@ -613,11 +612,11 @@ async function getAllUsers() {
   return result.rows;
 }
 async function getPendingPages() {
-  const result = await db.execute('SELECT * FROM pages WHERE status = "pending" ORDER BY updatedAt DESC');
+  const result = await db.execute("SELECT * FROM pages WHERE status = 'pending' ORDER BY updatedAt DESC");
   return result.rows;
 }
 async function approvePage(id) {
-  await db.execute('UPDATE pages SET status = "approved" WHERE id = ?', [id]);
+  await db.execute("UPDATE pages SET status = 'approved' WHERE id = ?", [id]);
 }
 async function rejectPage(id) {
   await db.execute('DELETE FROM pages WHERE id = ?', [id]);
@@ -780,7 +779,7 @@ app.post('/pages/:id/edit', requireLogin, async (req, res) => {
   await updatePage(req.params.id, title, content);
   const user = req.session.user;
   if (!user.is_admin && !user.is_reviewer) {
-    await db.execute('UPDATE pages SET status = "pending" WHERE id = ?', [req.params.id]);
+    await db.execute("UPDATE pages SET status = 'pending' WHERE id = ?", [req.params.id]);
   }
   res.redirect('/pages/' + req.params.id);
 });
